@@ -2,9 +2,31 @@
 #include "main.h"
 
 int main(int argc, char* argv[]) {
+    algo algoType;
+
+    /* Parameter Validation */
+    if(argc != 3) {
+        printf("Usage: ./hole [inputfile] <first|best|worst|next>\n");
+        return 1;
+    }
 
     /* Parse Input Parameters */
-    node* list = NULL;
+    if(strcmp(argv[2], "first") == 0) {
+        algoType = FIRST;
+    } else if(strcmp(argv[2], "best") == 0) {
+        algoType = BEST;
+    } else if(strcmp(argv[2], "worst") == 0) {
+        algoType = WORST;
+    } else if(strcmp(argv[2], "next") == 0) {
+        algoType = NEXT;
+    } else {
+        printf("Usage: ./hole [inputfile] <first|best|worst|next>\n");
+        return 1;
+    }
+
+
+    /* Create list from file*/
+    node* waitingList = readDataFromFile(argv[1]);
 
     /* LINKED LIST TESTING
     push(&list, 1,2,3);
@@ -69,4 +91,9 @@ node* createNode(int pid, int memSize, int memLocation) {
     newNode->next = NULL;
 
     return newNode;
+}
+
+
+node* readDataFromFile(char* filename) {
+    return NULL; //TODO CHANGE
 }

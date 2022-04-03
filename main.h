@@ -8,7 +8,7 @@
 #include <string.h>
 
 typedef enum {
-    FIRST, BEST, NEXT, WORST
+    FIRST, BEST, WORST, NEXT
 } algo;
 
 typedef struct node_Struct{
@@ -17,6 +17,9 @@ typedef struct node_Struct{
     int memLocation;
     struct node_Struct* next;
 } node;
+
+node* readDataFromFile(char* filename);
+
 
 /* Linked List Functions */
 void freeList(node* list);
