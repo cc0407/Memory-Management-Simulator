@@ -27,6 +27,9 @@ int main(int argc, char* argv[]) {
 
     /* Create list from file*/
     node* waitingList = readDataFromFile(argv[1]);
+    if(waitingList == NULL) {
+        return 0;
+    }
 
     /* LINKED LIST TESTING
     push(&list, 1,2,3);
@@ -40,6 +43,9 @@ int main(int argc, char* argv[]) {
 
 
     /* Print Stats */
+
+    printList(waitingList);
+    freeList(waitingList);
     return 0;
 }
 
@@ -56,7 +62,7 @@ void printList(node* list) {
     node* tempPtr = list;
     printf("---\n");
     while(tempPtr != NULL) {
-        printf("%d: %d in location [%d]\n", list->pid, list->memSize, list->memLocation);
+        printf("%d: %d in location [%d]\n", tempPtr->pid, tempPtr->memSize, tempPtr->memLocation);
         tempPtr = tempPtr->next;
     }
     printf("---\n");
@@ -95,5 +101,37 @@ node* createNode(int pid, int memSize, int memLocation) {
 
 
 node* readDataFromFile(char* filename) {
-    return NULL; //TODO CHANGE
+    node* list = NULL;
+    FILE *inFile;
+    int tempChar;
+    char tempString[100];
+    int fileLen;
+
+    // Prepare stdin and input file
+    fflush(stdin);
+    if(( inFile = fopen(filename, "r") ) == NULL)
+        return NULL;
+
+    // Find amt of lines in input file
+    fileLen = 0;
+    for (tempChar = getc(inFile); tempChar != EOF; tempChar = getc(inFile))
+        if(tempChar == '\n')
+            fileLen++;
+
+    fseek(inFile, 0, SEEK_SET); // go back to start of file
+
+    // Ingest data for each line in input file
+    int pid;
+    int memSize;
+    for(int i = 0; i <= fileLen; i++) {
+        if( fscanf(inFile, " %d %d ", &pid, &memSize) != 2) {
+            printf("Error reading input file on line %d\nPlease verify input file is in the format:\n   [pid] [mem size]\n", i + 1);
+            freeList(list);
+            return NULL;
+        }
+        push(&list, pid, memSize, -1);
+    }
+
+    fclose(inFile);
+    return list;
 }
