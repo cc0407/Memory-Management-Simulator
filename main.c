@@ -3,6 +3,7 @@
 
 int main(int argc, char* argv[]) {
     algo algoType;
+    node* memList = NULL;
 
     /* Parameter Validation */
     if(argc != 3) {
@@ -31,6 +32,24 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
+    /* Main Loop */
+    node* tempNode;
+    while(length(waitingList) > 0) {
+        if(length(memList) == 0) {
+            tempNode = pop(&waitingList);
+            tempNode->memLocation = 0;
+            tempNode->memTime = 0;
+            pushNode(&memList, tempNode); // Add process in to memlocation 0
+        }
+        else {
+            pop(&waitingList);
+        }
+
+        printDetails(waitingList, 10, 10);
+    }
+
+    printf("Done\n");
+
     /* LINKED LIST TESTING
     push(&list, 1,2,3);
     printList(list);
@@ -45,6 +64,7 @@ int main(int argc, char* argv[]) {
     /* Print Stats */
 
     printList(waitingList);
+
     freeList(waitingList);
     return 0;
 }
@@ -83,6 +103,20 @@ void push(node** list, int pid, int memSize, int memLocation) {
     current->next = newNode;
 }
 
+void pushNode(node** list, node* n) {
+    node* head = *list;
+    if(head == NULL) { // List is empty, update head with current details
+        *list = n;
+        return;
+    }
+
+    node* current = head;
+    while(current->next != NULL) {
+        current = current->next;
+    }
+    current->next = n;
+}
+
 node* pop(node** list) {
     node* head = *list;
     *list = head->next;
@@ -94,6 +128,8 @@ node* createNode(int pid, int memSize, int memLocation) {
     newNode->pid = pid;
     newNode->memSize = memSize;
     newNode->memLocation = memLocation;
+    newNode->swappedCount = 0;
+    newNode->memTime = -1;
     newNode->next = NULL;
 
     return newNode;
@@ -134,4 +170,39 @@ node* readDataFromFile(char* filename) {
 
     fclose(inFile);
     return list;
+}
+
+int length(node* list) {
+    int count = 0;
+    node* tempPtr = list;
+    while(tempPtr != NULL) {
+        count++;
+        tempPtr = tempPtr->next;
+    }
+    return count;
+}
+
+//pid loaded, #processes = 5, #holes = 3, %memusage = 41, cumulative %mem = 40
+void printDetails(node* memList, int memUsage, int cumulative) {
+    int numHoles = calculateHoles(memList);
+    printf("pid loaded, #processes = %d, #holes = %d, %%memusage = %d, cumulative %%mem = %d\n", length(memList), numHoles, memUsage, cumulative);
+}
+
+int calculateHoles(node* list) {
+    int listLen = length(list);
+    int holes = 0;
+    node* tempPtr = list;
+
+    if(listLen == 0) // No processes in memory, entire thing is a hole
+        return 1;
+    else if(listLen == 1) // One process in memory, if its less than memory available there is one hole
+        return (tempPtr->memSize < 1024);
+    
+    while(tempPtr->next != NULL) { // Calculate holes for every pair of loaded memory
+        if((tempPtr->memLocation + tempPtr->memSize) < tempPtr->next->memLocation) // If the two processes are not side by side
+            holes++;
+        tempPtr = tempPtr->next;
+    }
+
+    return holes;
 }
