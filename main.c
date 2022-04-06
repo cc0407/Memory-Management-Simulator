@@ -300,9 +300,18 @@ int calculateHoles(node* list) {
     else if(listLen == 1) // One process in memory, if its less than memory available there is one hole
         return (tempPtr->memSize < 1024);
     
-    while(tempPtr->next != NULL) { // Calculate holes for every pair of loaded memory
-        if((tempPtr->memLocation + tempPtr->memSize) < tempPtr->next->memLocation) // If the two processes are not side by side
+    int rightAddr;
+    int leftAddr;
+    while(tempPtr != NULL) { // Calculate holes for every pair of loaded memory
+        leftAddr = tempPtr->memLocation + tempPtr->memSize;
+        if(tempPtr->next == NULL)
+            rightAddr = 1024;
+        else
+            rightAddr = tempPtr->next->memLocation;
+
+        if(leftAddr < rightAddr) // If the two processes are not side by side
             holes++;
+
         tempPtr = tempPtr->next;
     }
 
