@@ -63,10 +63,13 @@ int main(int argc, char* argv[]) {
                         successFlag = insertFirst(&memList, tempNode);
                         break;
                     case BEST:
+                        successFlag = insertBest(&memList, tempNode);
                         break;
                     case WORST:
+                        successFlag = insertWorst(&memList, tempNode);
                         break;
                     case NEXT:
+                        successFlag = insertNext(&memList, tempNode);
                         break;
                 }
                 if(!successFlag) { // Remove one process from memory and see if theres enough space now
@@ -146,23 +149,38 @@ void insertAfter(node** list, node* before, node* new) {
 
     if(before == NULL) { // Special case, places node in front of head if NULL is provided
         pushHead(list, new);
-    }
-
-    node* tempNode = *list;
-    node* next;
-
-    while(tempNode != NULL && tempNode != before) {
-        tempNode = tempNode->next;
-        next = tempNode->next;
-    }
-
-    if(tempNode == NULL) { // Node was not found in list
         return;
     }
+    
+    if(list == NULL || *list == NULL) // List is empty (shouldn't happen but just in case)
+        return;
+
+    node* next = before->next;
+    before->next = new;
+    new->next = next;
+    return;
+    //TODO REMOVE ALL THIS
+    /*node* tempNode = *list;
+    node* next;
+
+
+
+    for(tempNode = *list; tempNode != before && tempNode != NULL; tempNode = tempNode->next); // Search for [before] in the list
+
+    if(tempNode == NULL) // [before] was not found in list
+        return;
+
+    next = tempNode->next;*/
+    /*while(tempNode->next != NULL && tempNode != before) {
+        tempNode = tempNode->next;
+        next = tempNode->next;
+    }*/
+
+    
 
     // Insert new node in between before and next
-    tempNode->next = new;
-    new->next = next;
+    //tempNode->next = new;
+    //new->next = next;
 
 }
 
@@ -362,6 +380,7 @@ bool insertFirst(node** list, node* n) {
 
     if(tempPtr->memLocation != 0) { // Special Case, first block of memory isnt located at 0
         if(n->memSize < (tempPtr->memLocation)) { // If this hole is larger than what is needed, put the process in 
+            n->memLocation = 0;
             insertAfter(list, NULL, n); // Push this node after tempPtr in the list
             return true;
         }
@@ -426,7 +445,7 @@ bool insertBest(node** list, node* n) {
         tempPtr = tempPtr->next;
     }
 
-    if(smallest = 1025)
+    if(smallest == 1025)
         return false; // No hole large enough
     else { // Put memory block into best fitting space
         if(beforeNode == NULL)
@@ -439,8 +458,13 @@ bool insertBest(node** list, node* n) {
     }
 }
 
-bool insertWorst(node** list, node* n); // Attempts to move n into the largest hole it can find that fits
-bool insertNext(node** list, node* n); // Attempts to move n into the next hole from the last placement
+bool insertWorst(node** list, node* n) {
+    return false;
+} // Attempts to move n into the largest hole it can find that fits
+
+bool insertNext(node** list, node* n) {
+    return false;
+} // Attempts to move n into the next hole from the last placement
 
 int calculateMemUsage(node* list) {
     float total = 0;
