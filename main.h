@@ -45,6 +45,7 @@ int calculateHoles(node* list); // Calculates the total number of holes in memor
 int largestHole(node* memList); // Returns the int value of the largest hole in memory
 void ageNodes(node* memList); // Increases the age of all nodes by 1
 node* removeOldest(node** memList); // Removes oldest node from memory and places into waiting queue
+int calculateMemUsage(node* list);
 
 bool insertFirst(node** list, node* n); // Attempts to move n into the first hole it can find
 bool insertBest(node** list, node* n); // Attempts to move n into the smallest hole it can find that fits

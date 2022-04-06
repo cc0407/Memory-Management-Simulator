@@ -4,6 +4,13 @@
 int main(int argc, char* argv[]) {
     algo algoType;
     node* memList = NULL;
+    int iterationCount = 0;
+    int memUsage = 0;
+    int numProcesses = 0;
+    int numHoles = 0;
+    int cumulativeMemUsage = 0;
+    int cumulativeProcessCount = 0;
+    int cumulativeHoleCount = 0;
 
     /* Parameter Validation */
     if(argc != 3) {
@@ -75,51 +82,23 @@ int main(int argc, char* argv[]) {
                         pushNode(&waitingList, removeNode);
                     }
                 }
-
-                /*
-                if(largestHole(memList) >= tempNode->memSize) { // There is a hole large enough to fit
-                    pushNode(&memList, tempNode); //DO FIRST BEST NEXT WORST
-                    break;
-                }
-                else { // Remove one process from memory and see enough space now
-                    removeNode = removeOldest(&memList);
-                    removeNode->swappedCount = removeNode->swappedCount + 1;
-
-                    if(removeNode->swappedCount >= 3) { // Process is "finished", remove it fully
-                        free(removeNode);
-                    }
-                    else { // Remove details about location of current process, and put back into waiting queue
-                        removeNode->memLocation = -1;
-                        pushNode(&waitingList, removeNode);
-                    }
-                }
-                */
             }
 
         }
 
-        printDetails(memList, 10, 10);
-        printList(waitingList);
-        printList(memList);
+        iterationCount++;
+        memUsage = calculateMemUsage(memList);
+        cumulativeMemUsage += memUsage;
+        numHoles = calculateHoles(memList);
+        cumulativeHoleCount += numHoles;
+        numProcesses = length(memList);
+        cumulativeProcessCount += numProcesses;
+        printf("pid loaded, #processes = %d, #holes = %d, %%memusage = %d, cumulative %%mem = %d\n", numProcesses, numHoles, memUsage, cumulativeMemUsage/iterationCount);
     }
+    printf("Total loads = %d, average processes = %.1f, average #holes = %.1f, cumulative %%mem = %d\n", 
+        iterationCount, (float)(cumulativeProcessCount)/(float)(iterationCount), (float)(cumulativeHoleCount)/(float)(iterationCount), cumulativeMemUsage/iterationCount);
 
-    printf("Done\n");
-
-    /* LINKED LIST TESTING
-    push(&list, 1,2,3);
-    printList(list);
-    node* head = pop(&list);
-    push(&list, 3,4,5);
-    printList(head);
-    printList(list);
-    freeList(list);
-    free(head);*/
-
-
-    /* Print Stats */
-
-    printList(waitingList);
-
+    freeList(memList);
     freeList(waitingList);
     return 0;
 }
@@ -275,6 +254,10 @@ node* readDataFromFile(char* filename) {
 }
 
 int length(node* list) {
+    if(list == NULL) {
+        return 0;
+    }
+
     int count = 0;
     node* tempPtr = list;
     while(tempPtr != NULL) {
@@ -405,3 +388,18 @@ bool insertFirst(node** list, node* n) {
 bool insertBest(node** list, node* n); // Attempts to move n into the smallest hole it can find that fits
 bool insertWorst(node** list, node* n); // Attempts to move n into the largest hole it can find that fits
 bool insertNext(node** list, node* n); // Attempts to move n into the next hole from the last placement
+
+int calculateMemUsage(node* list) {
+    float total = 0;
+
+    if(list == NULL) {
+        return 0;
+    }
+
+    node* tempPtr = list;
+    while(tempPtr != NULL) {
+        total += tempPtr->memSize;
+        tempPtr = tempPtr->next;
+    }
+    return (total / (float)1024) * 100;
+}
