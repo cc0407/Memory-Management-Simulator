@@ -32,6 +32,7 @@ void freeList(node* list);
 void freeNode(node* n);
 void printList(node* list);
 void push(node** list, int pid, int memSize, int memLocation);
+void pushHead(node** list, node* n);
 void insertAfter(node** list, node* before, node* new);
 void pushNode(node** list, node* n);
 node* pop(node** list);

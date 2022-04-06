@@ -94,6 +94,10 @@ int main(int argc, char* argv[]) {
         numProcesses = length(memList);
         cumulativeProcessCount += numProcesses;
         printf("pid loaded, #processes = %d, #holes = %d, %%memusage = %d, cumulative %%mem = %d\n", numProcesses, numHoles, memUsage, cumulativeMemUsage/iterationCount);
+
+
+        //printList(waitingList);
+        //printList(memList);
     }
     printf("Total loads = %d, average processes = %.1f, average #holes = %.1f, cumulative %%mem = %d\n", 
         iterationCount, (float)(cumulativeProcessCount)/(float)(iterationCount), (float)(cumulativeHoleCount)/(float)(iterationCount), cumulativeMemUsage/iterationCount);
@@ -116,7 +120,7 @@ void printList(node* list) {
     node* tempPtr = list;
     printf("---\n");
     while(tempPtr != NULL) {
-        printf("%d: %d in location [%d]\n", tempPtr->pid, tempPtr->memSize, tempPtr->memLocation);
+        printf("%d: %d in location [%d], time: %d\n", tempPtr->pid, tempPtr->memSize, tempPtr->memLocation, tempPtr->memTime);
         tempPtr = tempPtr->next;
     }
     printf("---\n");
@@ -172,6 +176,17 @@ void pushNode(node** list, node* n) {
 
     current->next = n; // append node to end of list
     n->next = NULL; // set end of list to null
+}
+
+void pushHead(node** list, node* n) {
+    node* head = *list;
+    if(head == NULL) { // List is empty, update head with current details
+        *list = n;
+        return;
+    }
+
+    n->next = *list; // append node to end of list
+    *list = n;
 }
 
 node* pop(node** list) {
@@ -267,12 +282,6 @@ int length(node* list) {
     return count;
 }
 
-//pid loaded, #processes = 5, #holes = 3, %memusage = 41, cumulative %mem = 40
-void printDetails(node* memList, int memUsage, int cumulative) {
-    int numHoles = calculateHoles(memList);
-    printf("pid loaded, #processes = %d, #holes = %d, %%memusage = %d, cumulative %%mem = %d\n", length(memList), numHoles, memUsage, cumulative);
-}
-
 int calculateHoles(node* list) {
     int listLen = length(list);
     int holes = 0;
@@ -301,28 +310,6 @@ int calculateHoles(node* list) {
     return holes;
 }
 
-int largestHole(node* memList) {
-    int listLen = length(memList);
-    int largest = 0;
-    node* tempPtr = memList;
-
-    if(listLen == 0) // No processes in memory, entire thing is a hole
-        return 1024;
-    else if(listLen == 1) // One process in memory, if its less than memory available there is one hole
-        return (1024 - tempPtr->memSize);
-    
-    while(tempPtr->next != NULL) { // Calculate holes for every pair of loaded memory
-        if((tempPtr->memLocation + tempPtr->memSize) < tempPtr->next->memLocation) // If the two processes are not side by side
-            if(largest < (tempPtr->next->memLocation - (tempPtr->memLocation + tempPtr->memSize)) ) // If this hole is larger than current hole, update it
-                largest = tempPtr->next->memLocation - (tempPtr->memLocation + tempPtr->memSize);
-        tempPtr = tempPtr->next;
-    }
-
-    if( 1024 - (tempPtr->memLocation + tempPtr->memSize) > largest) // Calculate distance from end of last process to end of 1024 block
-        largest = 1024 - (tempPtr->memLocation + tempPtr->memSize);
-
-    return largest;
-}
 
 
 // Increases the age of all nodes by 1
@@ -365,6 +352,39 @@ bool insertFirst(node** list, node* n) {
         return true;
     }
     
+    /*int leftAddr = 0; // the address in memory of the end of memory block
+    int rightAddr = 0; // the address in memory of the start of the next memory block
+    while(tempPtr != NULL) { // Find first hole that is large enough
+        if(leftAddr != tempPtr->memLocation) {
+            rightAddr = tempPtr->memLocation;
+            if(n->memSize < (rightAddr - leftAddr)) { // If this hole is larger than what is needed, put the process in 
+                n->memLocation = leftAddr;
+                insertAfter(list, tempPtr, n); // Push this node after tempPtr in the list
+                return true;
+            }
+            leftAddr = rightAddr;
+        }
+        else {
+            leftAddr += tempPtr->memSize;
+        }
+        
+        tempPtr = tempPtr->next;
+    }
+
+    if(leftAddr < 1024) { // One big hole until end of memory
+        if(n->memSize < (1024 - leftAddr)) { // If this hole is larger than what is needed, put the process in 
+            n->memLocation = leftAddr;
+            insertAfter(list, tempPtr, n); // Push this node after tempPtr in the list
+            return true;
+        }
+    }*/
+    if(tempPtr->memLocation != 0) { // Special Case, first block of memory isnt located at 0
+        if(n->memSize < (tempPtr->memLocation)) { // If this hole is larger than what is needed, put the process in 
+            pushHead(list, n); // Push this node after tempPtr in the list
+            return true;
+        }
+    }
+
     int leftAddr = 0; // the address in memory of the end of memory block
     int rightAddr = 0; // the address in memory of the start of the next memory block
     while(tempPtr != NULL) { // Find first hole that is large enough
