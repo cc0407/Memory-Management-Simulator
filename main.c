@@ -143,6 +143,11 @@ void push(node** list, int pid, int memSize, int memLocation) {
 
 // Inserts a new node after [before] in the [list]
 void insertAfter(node** list, node* before, node* new) {
+
+    if(before == NULL) { // Special case, places node in front of head if NULL is provided
+        pushHead(list, new);
+    }
+
     node* tempNode = *list;
     node* next;
 
@@ -292,6 +297,10 @@ int calculateHoles(node* list) {
     else if(listLen == 1) // One process in memory, if its less than memory available there is one hole
         return (tempPtr->memSize < 1024);
     
+    if(tempPtr->memLocation != 0) { // Special Case, first block of memory isnt located at 0
+        holes++;
+    }
+
     int rightAddr;
     int leftAddr;
     while(tempPtr != NULL) { // Calculate holes for every pair of loaded memory
@@ -343,7 +352,6 @@ node* removeOldest(node** memList) {
 // Attempts to move n into the first hole it can find
 bool insertFirst(node** list, node* n) {
     int listLen = length(*list);
-    int largest = 0;
     node* tempPtr = *list;
 
     if(listLen == 0) { // No processes in memory, entire thing is a hole
@@ -351,36 +359,10 @@ bool insertFirst(node** list, node* n) {
         pushNode(list, n);
         return true;
     }
-    
-    /*int leftAddr = 0; // the address in memory of the end of memory block
-    int rightAddr = 0; // the address in memory of the start of the next memory block
-    while(tempPtr != NULL) { // Find first hole that is large enough
-        if(leftAddr != tempPtr->memLocation) {
-            rightAddr = tempPtr->memLocation;
-            if(n->memSize < (rightAddr - leftAddr)) { // If this hole is larger than what is needed, put the process in 
-                n->memLocation = leftAddr;
-                insertAfter(list, tempPtr, n); // Push this node after tempPtr in the list
-                return true;
-            }
-            leftAddr = rightAddr;
-        }
-        else {
-            leftAddr += tempPtr->memSize;
-        }
-        
-        tempPtr = tempPtr->next;
-    }
 
-    if(leftAddr < 1024) { // One big hole until end of memory
-        if(n->memSize < (1024 - leftAddr)) { // If this hole is larger than what is needed, put the process in 
-            n->memLocation = leftAddr;
-            insertAfter(list, tempPtr, n); // Push this node after tempPtr in the list
-            return true;
-        }
-    }*/
     if(tempPtr->memLocation != 0) { // Special Case, first block of memory isnt located at 0
         if(n->memSize < (tempPtr->memLocation)) { // If this hole is larger than what is needed, put the process in 
-            pushHead(list, n); // Push this node after tempPtr in the list
+            insertAfter(list, NULL, n); // Push this node after tempPtr in the list
             return true;
         }
     }
@@ -403,9 +385,60 @@ bool insertFirst(node** list, node* n) {
         tempPtr = tempPtr->next;
     }
     return false; // No hole large enough
-
 }
-bool insertBest(node** list, node* n); // Attempts to move n into the smallest hole it can find that fits
+
+// Attempts to move n into the smallest hole it can find that fits
+bool insertBest(node** list, node* n) {
+    int listLen = length(*list);
+    int smallest = 1025;
+    node* beforeNode;
+    node* tempPtr = *list;
+
+    if(listLen == 0) { // No processes in memory, entire thing is a hole
+        n->memLocation = 0;
+        pushNode(list, n);
+        return true;
+    }
+
+    if(tempPtr->memLocation != 0) { // Special Case, first block of memory isnt located at 0
+        if(n->memSize < (tempPtr->memLocation)) { // Hole can fit memory, set it as best fit
+            smallest = tempPtr->memLocation;
+            beforeNode = NULL;
+        }
+    }
+
+    int leftAddr = 0; // the address in memory of the end of memory block
+    int rightAddr = 0; // the address in memory of the start of the next memory block
+    while(tempPtr != NULL) { // Find the hole that is closed to the proper size
+        leftAddr = tempPtr->memLocation + tempPtr->memSize;
+        if(tempPtr->next == NULL) // Compare current start to end of memory space
+            rightAddr = 1024;
+        else
+            rightAddr = tempPtr->next->memLocation;
+
+        if(leftAddr < rightAddr) // If the two processes are not side by side
+            if(n->memSize < (rightAddr - leftAddr)) { // Hole can fit memory, update best fit
+                if((rightAddr - leftAddr) < smallest) {
+                    smallest = (rightAddr - leftAddr);
+                    beforeNode = tempPtr;
+                }
+            }
+        tempPtr = tempPtr->next;
+    }
+
+    if(smallest = 1025)
+        return false; // No hole large enough
+    else { // Put memory block into best fitting space
+        if(beforeNode == NULL)
+            n->memLocation = 0;
+        else
+            n->memLocation = beforeNode->memLocation + beforeNode->memSize;
+
+        insertAfter(list, beforeNode, n);
+        return true;
+    }
+}
+
 bool insertWorst(node** list, node* n); // Attempts to move n into the largest hole it can find that fits
 bool insertNext(node** list, node* n); // Attempts to move n into the next hole from the last placement
 
