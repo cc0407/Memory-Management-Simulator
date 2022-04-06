@@ -34,15 +34,28 @@ int main(int argc, char* argv[]) {
 
     /* Main Loop */
     node* tempNode;
+    node* removeNode;
     while(length(waitingList) > 0) {
-        if(length(memList) == 0) {
+        ageNodes(memList);
+        if(length(memList) == 0) { // No location in memory yet
             tempNode = pop(&waitingList);
             tempNode->memLocation = 0;
             tempNode->memTime = 0;
             pushNode(&memList, tempNode); // Add process in to memlocation 0
         }
         else {
-            pop(&waitingList);
+            tempNode = pop(&waitingList);
+
+            while(1) {
+                if(largestHole(memList) >= tempNode->memSize) { // There is a hole large enough to fit
+                    //DO FIRST BEST WORST NEXT
+                    break;
+                }
+                else { // Remove one process from memory and see enough space now
+                    removeNode = removeOldest(memList);
+                }
+            }
+
         }
 
         printDetails(waitingList, 10, 10);
@@ -121,6 +134,30 @@ node* pop(node** list) {
     node* head = *list;
     *list = head->next;
     return head;
+}
+
+// Deletes a specific node from the list
+node* popSpecific(node** list, node* remove) {
+    node* tempNode = *list;
+    node* prev = NULL;
+
+    while(tempNode != NULL && tempNode != remove) {
+        prev = tempNode;
+        tempNode = tempNode->next;
+    }
+
+    if(tempNode == NULL) { // Node was not found in list
+        return NULL;
+    }
+
+    if(prev == NULL) { // Node to be removed is first in the list
+        return pop(list);
+    }
+    else { // Node exists somewhere in the list
+        prev->next = tempNode->next;
+        return tempNode;
+    }
+
 }
 
 node* createNode(int pid, int memSize, int memLocation) {
@@ -206,3 +243,55 @@ int calculateHoles(node* list) {
 
     return holes;
 }
+
+int largestHole(node* memList) {
+    int listLen = length(memList);
+    int largest = 0;
+    node* tempPtr = memList;
+
+    if(listLen == 0) // No processes in memory, entire thing is a hole
+        return 1024;
+    else if(listLen == 1) // One process in memory, if its less than memory available there is one hole
+        return (1024 - tempPtr->memSize);
+    
+    while(tempPtr->next != NULL) { // Calculate holes for every pair of loaded memory
+        if((tempPtr->memLocation + tempPtr->memSize) < tempPtr->next->memLocation) // If the two processes are not side by side
+            if(largest < (tempPtr->next->memLocation - (tempPtr->memLocation + tempPtr->memSize)) ) // If this hole is larger than current hole, update it
+                largest = tempPtr->next->memLocation - (tempPtr->memLocation + tempPtr->memSize);
+        tempPtr = tempPtr->next;
+    }
+
+    if( 1024 - (tempPtr->memLocation + tempPtr->memSize) > largest) // Calculate distance from end of last process to end of 1024 block
+        largest = 1024 - (tempPtr->memLocation + tempPtr->memSize);
+
+    return largest;
+}
+
+
+// Increases the age of all nodes by 1
+void ageNodes(node* memList) {
+    node* tempPtr = memList;
+    while(tempPtr != NULL) {
+        tempPtr->memTime = tempPtr->memTime + 1;
+        tempPtr = tempPtr->next;
+    } 
+} 
+
+// Removes oldest node from memory and places into waiting queue
+node* removeOldest(memList) {
+    node* removeNode;
+    node* tempPtr = memList;
+    int oldest = 0;
+
+    // First pass, find oldest node
+    while(tempPtr != NULL) {
+        if(tempPtr->memTime > oldest) {
+            oldest = tempPtr->memTime;
+            removeNode = tempPtr;
+        }
+
+        tempPtr = tempPtr->next;
+    }
+
+    return popSpecific(&memList, removeNode);
+} 
