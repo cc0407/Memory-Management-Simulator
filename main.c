@@ -146,7 +146,6 @@ void push(node** list, int pid, int memSize, int memLocation) {
 
 // Inserts a new node after [before] in the [list]
 void insertAfter(node** list, node* before, node* new) {
-
     if(before == NULL) { // Special case, places node in front of head if NULL is provided
         pushHead(list, new);
         return;
@@ -188,6 +187,7 @@ void pushNode(node** list, node* n) {
     node* head = *list;
     if(head == NULL) { // List is empty, update head with current details
         *list = n;
+        n->next = NULL;
         return;
     }
 
@@ -205,6 +205,7 @@ void pushHead(node** list, node* n) {
     node* head = *list;
     if(head == NULL) { // List is empty, update head with current details
         *list = n;
+        n->next = NULL;
         return;
     }
 
@@ -415,6 +416,7 @@ bool insertBest(node** list, node* n) {
 
     if(listLen == 0) { // No processes in memory, entire thing is a hole
         n->memLocation = 0;
+        n->next = NULL;
         pushNode(list, n);
         return true;
     }
