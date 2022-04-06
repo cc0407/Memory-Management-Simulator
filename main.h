@@ -51,6 +51,6 @@ int calculateMemUsage(node* list);
 bool insertFirst(node** list, node* n); // Attempts to move n into the first hole it can find
 bool insertBest(node** list, node* n); // Attempts to move n into the smallest hole it can find that fits
 bool insertWorst(node** list, node* n); // Attempts to move n into the largest hole it can find that fits
-bool insertNext(node** list, node* n); // Attempts to move n into the next hole from the last placement
+bool insertNext(node** list, node** prevFit, node* n); // Attempts to move n into the next hole from the last placement
 
 #endif /* SIMCPU */

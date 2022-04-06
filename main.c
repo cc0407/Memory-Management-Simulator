@@ -4,6 +4,7 @@
 int main(int argc, char* argv[]) {
     algo algoType;
     node* memList = NULL;
+    node* prevFit = NULL;
     int iterationCount = 0;
     int memUsage = 0;
     int numProcesses = 0;
@@ -69,7 +70,7 @@ int main(int argc, char* argv[]) {
                         successFlag = insertWorst(&memList, tempNode);
                         break;
                     case NEXT:
-                        successFlag = insertNext(&memList, tempNode);
+                        successFlag = insertNext(&memList, &prevFit, tempNode);
                         break;
                 }
                 if(!successFlag) { // Remove one process from memory and see if theres enough space now
@@ -98,9 +99,6 @@ int main(int argc, char* argv[]) {
         cumulativeProcessCount += numProcesses;
         printf("pid loaded, #processes = %d, #holes = %d, %%memusage = %d, cumulative %%mem = %d\n", numProcesses, numHoles, memUsage, cumulativeMemUsage/iterationCount);
 
-
-        //printList(waitingList);
-        //printList(memList);
     }
     printf("Total loads = %d, average processes = %.1f, average #holes = %.1f, cumulative %%mem = %d\n", 
         iterationCount, (float)(cumulativeProcessCount)/(float)(iterationCount), (float)(cumulativeHoleCount)/(float)(iterationCount), cumulativeMemUsage/iterationCount);
@@ -258,8 +256,8 @@ node* readDataFromFile(char* filename) {
     int pid;
     int memSize;
     for(int i = 0; i <= fileLen; i++) {
-        if( fscanf(inFile, " %d %d ", &pid, &memSize) != 2) {
-            printf("Error reading input file on line %d\nPlease verify input file is in the format:\n   [pid] [mem size]\n", i + 1);
+        if( fscanf(inFile, " %d %d ", &pid, &memSize) != 2 || memSize > 512) {
+            printf("Error reading input file\nPlease verify input file is in the format:\n   [pid] [mem size]\nand that the process sizes do not exceed 512.\n", i + 1);
             freeList(list);
             return NULL;
         }
@@ -307,7 +305,7 @@ int calculateHoles(node* list) {
         else
             rightAddr = tempPtr->next->memLocation;
 
-        if(leftAddr < rightAddr) // If the two processes are not side by side
+        if(leftAddr < rightAddr) // If the two mem blocks are not side by side
             holes++;
 
         tempPtr = tempPtr->next;
@@ -374,7 +372,7 @@ bool insertFirst(node** list, node* n) {
         else
             rightAddr = tempPtr->next->memLocation;
 
-        if(leftAddr < rightAddr) // If the two processes are not side by side
+        if(leftAddr < rightAddr) // If the two mem blocks are not side by side
             if(n->memSize < (rightAddr - leftAddr)) { // If this hole is larger than what is needed, put the process in 
                 n->memLocation = leftAddr;
                 insertAfter(list, tempPtr, n); // Push this node after tempPtr in the list
@@ -415,7 +413,7 @@ bool insertBest(node** list, node* n) {
         else
             rightAddr = tempPtr->next->memLocation;
 
-        if(leftAddr < rightAddr) // If the two processes are not side by side
+        if(leftAddr < rightAddr) // If the two mem blocks are not side by side
             if(n->memSize < (rightAddr - leftAddr)) { // Hole can fit memory, update best fit
                 if((rightAddr - leftAddr) < smallest) {
                     smallest = (rightAddr - leftAddr);
@@ -468,7 +466,7 @@ bool insertWorst(node** list, node* n) {
         else
             rightAddr = tempPtr->next->memLocation;
 
-        if(leftAddr < rightAddr) // If the two processes are not side by side
+        if(leftAddr < rightAddr) // If the two mem blocks are not side by side
             if(n->memSize < (rightAddr - leftAddr)) { // Hole can fit memory, update best fit
                 if((rightAddr - leftAddr) > largest) {
                     largest = (rightAddr - leftAddr);
@@ -491,9 +489,53 @@ bool insertWorst(node** list, node* n) {
     }
 }
 
-bool insertNext(node** list, node* n) {
-    return false;
-} // Attempts to move n into the next hole from the last placement
+// Attempts to move n into the next hole from the last placement
+bool insertNext(node** list, node** prevFit, node* n) {
+    int listLen = length(*list);
+    
+
+    if(listLen == 0) { // No processes in memory, entire thing is a hole
+        n->memLocation = 0;
+        pushNode(list, n);
+        *prevFit = n;
+        return true;
+    }
+
+    node* tempPtr = *prevFit;
+    int leftAddr; // the address in memory of the end of memory block
+    int rightAddr; // the address in memory of the start of the next memory block
+    for(int i = 0; i < listLen; i++) { // Find next hole that fits
+        if(tempPtr == NULL) { // Loop around if reached the end of the list
+            tempPtr = *list;
+        }
+
+        if(tempPtr->memLocation != 0 && tempPtr == *list) { // Special Case, first block of memory isnt located at 0
+            if(n->memSize < (tempPtr->memLocation)) { // If this hole is larger than what is needed, put the process in 
+                n->memLocation = 0;
+                insertAfter(list, NULL, n);
+                *prevFit = n;
+                return true;
+            }
+        }
+
+        // Calculate end of curr mem block, and start of next
+        leftAddr = tempPtr->memLocation + tempPtr->memSize;
+        if(tempPtr->next == NULL)
+            rightAddr = 1024;
+        else
+            rightAddr = tempPtr->next->memLocation;
+
+        if(leftAddr < rightAddr) // If the two mem blocks are not side by side
+            if(n->memSize < (rightAddr - leftAddr)) { // If this hole is larger than what is needed, put the process in 
+                n->memLocation = leftAddr;
+                insertAfter(list, tempPtr, n); // Push this node after tempPtr in the list
+                *prevFit = n;
+                return true;
+            }
+        tempPtr = tempPtr->next;
+    }
+    return false; // No hole large enough
+}
 
 int calculateMemUsage(node* list) {
     float total = 0;
