@@ -1,6 +1,6 @@
-all: main
+all: hole
 
-main: main.c
+hole: main.c
 	gcc -Wpedantic -std=gnu99 main.c -g -o hole
 
 clean:

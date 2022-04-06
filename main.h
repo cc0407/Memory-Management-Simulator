@@ -32,6 +32,7 @@ void freeList(node* list);
 void freeNode(node* n);
 void printList(node* list);
 void push(node** list, int pid, int memSize, int memLocation);
+void insertAfter(node** list, node* before, node* new);
 void pushNode(node** list, node* n);
 node* pop(node** list);
 node* popSpecific(node** list, node* remove);
@@ -43,6 +44,11 @@ void printDetails(node* memList, int memUsage, int cumulative);
 int calculateHoles(node* list); // Calculates the total number of holes in memory
 int largestHole(node* memList); // Returns the int value of the largest hole in memory
 void ageNodes(node* memList); // Increases the age of all nodes by 1
-node* removeOldest(memList); // Removes oldest node from memory and places into waiting queue
+node* removeOldest(node** memList); // Removes oldest node from memory and places into waiting queue
+
+bool insertFirst(node** list, node* n); // Attempts to move n into the first hole it can find
+bool insertBest(node** list, node* n); // Attempts to move n into the smallest hole it can find that fits
+bool insertWorst(node** list, node* n); // Attempts to move n into the largest hole it can find that fits
+bool insertNext(node** list, node* n); // Attempts to move n into the next hole from the last placement
 
 #endif /* SIMCPU */

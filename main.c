@@ -35,30 +35,72 @@ int main(int argc, char* argv[]) {
     /* Main Loop */
     node* tempNode;
     node* removeNode;
+    bool successFlag;
     while(length(waitingList) > 0) {
+        successFlag = false;
         ageNodes(memList);
         if(length(memList) == 0) { // No location in memory yet
             tempNode = pop(&waitingList);
             tempNode->memLocation = 0;
             tempNode->memTime = 0;
+            tempNode->next = NULL;
             pushNode(&memList, tempNode); // Add process in to memlocation 0
         }
         else {
             tempNode = pop(&waitingList);
+            tempNode->memTime = 0; // Resetting time in memory for this process
 
-            while(1) {
+            while (!successFlag) {
+                switch(algoType) {
+                    case FIRST:
+                        successFlag = insertFirst(&memList, tempNode);
+                        break;
+                    case BEST:
+                        break;
+                    case WORST:
+                        break;
+                    case NEXT:
+                        break;
+                }
+                if(!successFlag) { // Remove one process from memory and see if theres enough space now
+
+                    removeNode = removeOldest(&memList);
+                    removeNode->swappedCount = removeNode->swappedCount + 1;
+
+                    if(removeNode->swappedCount >= 3) { // Process is "finished", remove it fully
+                        free(removeNode);
+                    }
+                    else { // Remove details about location of current process, and put back into waiting queue
+                        removeNode->memLocation = -1;
+                        pushNode(&waitingList, removeNode);
+                    }
+                }
+
+                /*
                 if(largestHole(memList) >= tempNode->memSize) { // There is a hole large enough to fit
-                    //DO FIRST BEST WORST NEXT
+                    pushNode(&memList, tempNode); //DO FIRST BEST NEXT WORST
                     break;
                 }
                 else { // Remove one process from memory and see enough space now
-                    removeNode = removeOldest(memList);
+                    removeNode = removeOldest(&memList);
+                    removeNode->swappedCount = removeNode->swappedCount + 1;
+
+                    if(removeNode->swappedCount >= 3) { // Process is "finished", remove it fully
+                        free(removeNode);
+                    }
+                    else { // Remove details about location of current process, and put back into waiting queue
+                        removeNode->memLocation = -1;
+                        pushNode(&waitingList, removeNode);
+                    }
                 }
+                */
             }
 
         }
 
-        printDetails(waitingList, 10, 10);
+        printDetails(memList, 10, 10);
+        printList(waitingList);
+        printList(memList);
     }
 
     printf("Done\n");
@@ -116,6 +158,26 @@ void push(node** list, int pid, int memSize, int memLocation) {
     current->next = newNode;
 }
 
+// Inserts a new node after [before] in the [list]
+void insertAfter(node** list, node* before, node* new) {
+    node* tempNode = *list;
+    node* next;
+
+    while(tempNode != NULL && tempNode != before) {
+        tempNode = tempNode->next;
+        next = tempNode->next;
+    }
+
+    if(tempNode == NULL) { // Node was not found in list
+        return;
+    }
+
+    // Insert new node in between before and next
+    tempNode->next = new;
+    new->next = next;
+
+}
+
 void pushNode(node** list, node* n) {
     node* head = *list;
     if(head == NULL) { // List is empty, update head with current details
@@ -123,11 +185,14 @@ void pushNode(node** list, node* n) {
         return;
     }
 
+    // Navigate to end of linked list
     node* current = head;
     while(current->next != NULL) {
         current = current->next;
     }
-    current->next = n;
+
+    current->next = n; // append node to end of list
+    n->next = NULL; // set end of list to null
 }
 
 node* pop(node** list) {
@@ -278,9 +343,9 @@ void ageNodes(node* memList) {
 } 
 
 // Removes oldest node from memory and places into waiting queue
-node* removeOldest(memList) {
+node* removeOldest(node** memList) {
     node* removeNode;
-    node* tempPtr = memList;
+    node* tempPtr = *memList;
     int oldest = 0;
 
     // First pass, find oldest node
@@ -293,5 +358,41 @@ node* removeOldest(memList) {
         tempPtr = tempPtr->next;
     }
 
-    return popSpecific(&memList, removeNode);
+    return popSpecific(memList, removeNode);
 } 
+
+// Attempts to move n into the first hole it can find
+bool insertFirst(node** list, node* n) {
+    int listLen = length(*list);
+    int largest = 0;
+    node* tempPtr = *list;
+
+    if(listLen == 0) { // No processes in memory, entire thing is a hole
+        n->memLocation = 0;
+        pushNode(list, n);
+        return true;
+    }
+    
+    int leftAddr = 0; // the address in memory of the end of memory block
+    int rightAddr = 0; // the address in memory of the start of the next memory block
+    while(tempPtr != NULL) { // Find first hole that is large enough
+        leftAddr = tempPtr->memLocation + tempPtr->memSize;
+        if(tempPtr->next == NULL)
+            rightAddr = 1024;
+        else
+            rightAddr = tempPtr->next->memLocation;
+
+        if(leftAddr < rightAddr) // If the two processes are not side by side
+            if(n->memSize < (rightAddr - leftAddr)) { // If this hole is larger than what is needed, put the process in 
+                n->memLocation = leftAddr;
+                insertAfter(list, tempPtr, n); // Push this node after tempPtr in the list
+                return true;
+            }
+        tempPtr = tempPtr->next;
+    }
+    return false; // No hole large enough
+
+}
+bool insertBest(node** list, node* n); // Attempts to move n into the smallest hole it can find that fits
+bool insertWorst(node** list, node* n); // Attempts to move n into the largest hole it can find that fits
+bool insertNext(node** list, node* n); // Attempts to move n into the next hole from the last placement
