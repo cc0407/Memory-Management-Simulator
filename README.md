@@ -1,6 +1,6 @@
 # Memory-Management-Simulator
-
 This project simulates how memory is managed in a computer, using 4 different algorithms: **first** fit, **best** fit, **worst** fit, and **next** fit.  
+
 The simulator will take processes of varying sizes, load them into memory according to the chosen algorithm (see Algorithms below) and swap process out as needed to create larger holes.
 Written in C.
 
